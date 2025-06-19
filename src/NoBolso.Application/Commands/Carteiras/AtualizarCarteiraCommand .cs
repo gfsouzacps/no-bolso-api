@@ -1,10 +1,6 @@
 using System;
 using MediatR;
 
-namespace NoBolso.Application.Commands.Carteiras
-{
-    public class RemoverCarteiraCommand : IRequest<bool>
-    {
-        public Guid Id { get; set; }
-    }
-}
+namespace NoBolso.Application.Commands.Carteiras;
+
+public record AtualizarCarteiraCommand(Guid Id, string Nome) : IRequest<Unit>;

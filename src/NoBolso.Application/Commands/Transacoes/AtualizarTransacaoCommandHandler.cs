@@ -1,43 +1,41 @@
-using AutoMapper;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using NoBolso.Application.Commands.Transacoes;
-using NoBolso.Application.DTOs;
 using NoBolso.Domain.Entities;
 using NoBolso.Domain.Events;
-using NoBolso.Domain.Interfaces.Repositories;
+using NoBolso.Domain.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NoBolso.Application.Commands.Transacoes
+namespace NoBolso.Application.Commands.Transacoes;
+
+public class AtualizarTransacaoCommandHandler : IRequestHandler<AtualizarTransacaoCommand, Unit>
 {
-    public class AtualizarTransacaoCommandHandler : IRequestHandler<AtualizarTransacaoCommand, TransacaoDto>
+    private readonly IRepository<Transacao> _repository;
+
+    public AtualizarTransacaoCommandHandler(IRepository<Transacao> repository)
     {
-        private readonly ITransacaoRepository _transacaoRepository;
-        private readonly IMapper _mapper;
+        _repository = repository;
+    }
 
-        public AtualizarTransacaoCommandHandler(ITransacaoRepository transacaoRepository, IMapper mapper)
+    public async Task<Unit> Handle(AtualizarTransacaoCommand request, CancellationToken cancellationToken)
+    {
+        var transacao = await _repository.GetQueryable()
+            .Include(t => t.Carteira)
+            .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
+
+        if (transacao == null || transacao.Carteira.UsuarioId != request.UsuarioId)
         {
-            _transacaoRepository = transacaoRepository;
-            _mapper = mapper;
+            throw new Exception($"Transação com ID {request.Id} não encontrada ou permissão negada.");
         }
 
-        public async Task<TransacaoDto> Handle(AtualizarTransacaoCommand request, CancellationToken cancellationToken)
-        {
-            var transacao = await _transacaoRepository.ObterPorIdAsync(request.Id);
-            if (transacao == null)
-            {
-                return null; // Ou lançar exceção
-            }
+        transacao.AtualizarDescricao(request.Descricao);
+        transacao.AtualizarValor(request.Valor);
+        transacao.AtualizarTipoTransacao(request.TipoTransacao);
+        transacao.AtualizarDataTransacao(request.DataTransacao);
 
-            transacao.AtualizarDescricao(request.Descricao);
-            transacao.AtualizarValor(request.Valor);
-            transacao.AtualizarTipoTransacao(request.TipoTransacao);
-            transacao.AtualizarDataTransacao(request.DataTransacao);
-
-            await _transacaoRepository.AtualizarAsync(transacao);
-
-            return _mapper.Map<TransacaoDto>(transacao);
-        }
+        await _repository.SaveChangesAsync(cancellationToken);
+        return Unit.Value;
     }
 }

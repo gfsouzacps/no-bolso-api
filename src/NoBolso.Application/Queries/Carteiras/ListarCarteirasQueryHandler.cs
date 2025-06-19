@@ -1,28 +1,34 @@
-using AutoMapper;
 using MediatR;
-using NoBolso.Application.DTOs;
-using NoBolso.Domain.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
+using NoBolso.Domain.Entities;
+using NoBolso.Domain.Enums;
+using NoBolso.Domain.Interfaces;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NoBolso.Application.Queries.Carteiras
+namespace NoBolso.Application.Queries.Carteiras;
+
+public class ListarCarteirasQueryHandler : IRequestHandler<ListarCarteirasQuery, List<ListarCarteirasQueryResult>>
 {
-    public class ListarCarteirasQueryHandler : IRequestHandler<ListarCarteirasQuery, IEnumerable<CarteiraDto>>
+    private readonly IRepository<Carteira> _carteiraRepository;
+ 
+    public ListarCarteirasQueryHandler(IRepository<Carteira> carteiraRepository)
     {
-        private readonly ICarteiraRepository _carteiraRepository;
-        private readonly IMapper _mapper;
+        _carteiraRepository = carteiraRepository;
+    }
 
-        public ListarCarteirasQueryHandler(ICarteiraRepository carteiraRepository, IMapper mapper)
-        {
-            _carteiraRepository = carteiraRepository;
-            _mapper = mapper;
-        }
-
-        public async Task<IEnumerable<CarteiraDto>> Handle(ListarCarteirasQuery request, CancellationToken cancellationToken)
-        {
-            var carteiras = await _carteiraRepository.ObterTodasAsync();
-            return _mapper.Map<IEnumerable<CarteiraDto>>(carteiras);
-        }
+    public async Task<List<ListarCarteirasQueryResult>> Handle(ListarCarteirasQuery request, CancellationToken cancellationToken)
+    {
+        return await _carteiraRepository
+            .GetQueryable()
+            .Where(c => c.UsuarioId == request.UsuarioId)
+            .Include(c => c.Transacoes)
+            .Select(c => new ListarCarteirasQueryResult(
+                c.Id,
+                c.Nome,
+                c.Transacoes.Sum(t => t.TipoTransacao == TipoTransacao.Entrada ? t.Valor : -t.Valor)
+            ))
+            .ToListAsync(cancellationToken);
     }
 }

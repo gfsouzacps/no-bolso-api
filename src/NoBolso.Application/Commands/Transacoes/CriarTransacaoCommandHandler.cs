@@ -1,59 +1,58 @@
-using AutoMapper;
 using MediatR;
 using NoBolso.Application.Commands.Transacoes;
-using NoBolso.Application.DTOs;
 using NoBolso.Domain.Entities;
 using NoBolso.Domain.Events;
-using NoBolso.Domain.Interfaces.Repositories;
+using NoBolso.Domain.Interfaces;
+using NoBolso.Domain.Interfaces.Services;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using NoBolso.Domain.Interfaces.Services;
 
-namespace NoBolso.Application.Commands.Transacoes
+namespace NoBolso.Application.Commands.Transacoes;
+
+public class CriarTransacaoCommandHandler : IRequestHandler<CriarTransacaoCommand, Guid>
 {
-    public class CriarTransacaoCommandHandler : IRequestHandler<CriarTransacaoCommand, TransacaoDto>
+    private readonly IRepository<Transacao> _transacaoRepository;
+    private readonly IRepository<Carteira> _carteiraRepository;
+    private readonly IEventService _eventService;
+
+    public CriarTransacaoCommandHandler(
+        IRepository<Transacao> transacaoRepository,
+        IRepository<Carteira> carteiraRepository,
+        IEventService eventService)
     {
-        private readonly ITransacaoRepository _transacaoRepository;
-        private readonly ICarteiraRepository _carteiraRepository;
-        private readonly IEventService _eventService; // Injetar o serviço de eventos
-        private readonly IMapper _mapper;
+        _transacaoRepository = transacaoRepository;
+        _carteiraRepository = carteiraRepository;
+        _eventService = eventService;
+    }
 
-        public CriarTransacaoCommandHandler(
-            ITransacaoRepository transacaoRepository,
-            ICarteiraRepository carteiraRepository,
-            IEventService eventService,
-            IMapper mapper)
+    public async Task<Guid> Handle(CriarTransacaoCommand request, CancellationToken cancellationToken)
+    {
+        // 1. Validação: Checar se a carteira existe e pertence ao usuário
+        var carteira = await _carteiraRepository.GetByIdAsync(request.CarteiraId, cancellationToken);
+        if (carteira == null || carteira.UsuarioId != request.UsuarioId)
         {
-            _transacaoRepository = transacaoRepository;
-            _carteiraRepository = carteiraRepository;
-            _eventService = eventService;
-            _mapper = mapper;
+            throw new InvalidOperationException($"Carteira com ID {request.CarteiraId} não foi encontrada ou não pertence ao usuário.");
         }
 
-        public async Task<TransacaoDto> Handle(CriarTransacaoCommand request, CancellationToken cancellationToken)
-        {
-            var carteira = await _carteiraRepository.ObterPorIdAsync(request.CarteiraId);
-            if (carteira == null)
-                throw new InvalidOperationException($"Carteira com ID {request.CarteiraId} não foi encontrada.");
+        // 2. Criação da Entidade
+        var transacao = new Transacao(
+            request.Descricao,
+            request.Valor,
+            request.TipoTransacao,
+            request.DataTransacao,
+            request.CarteiraId
+        );
+        // Lembre-se de adicionar o UsuarioId à entidade Transacao se ainda não o fez.
 
-            var transacao = new Transacao(
-                request.Descricao,
-                request.Valor,
-                request.TipoTransacao,
-                request.DataTransacao,
-                request.CarteiraId
-            );
+        // 3. Persistência
+        await _transacaoRepository.AddAsync(transacao, cancellationToken);
+        await _transacaoRepository.SaveChangesAsync(cancellationToken);
 
-            var transacaoSalva = await _transacaoRepository.AdicionarAsync(transacao);
+        // 4. Publicação do Evento (APÓS salvar no banco)
+        await _eventService.PublicarTransacaoCriadaAsync(new TransacaoCriadaEvent(transacao));
 
-            // Publicar o evento aqui dentro!
-            await _eventService.PublicarTransacaoCriadaAsync(new TransacaoCriadaEvent(transacaoSalva));
-
-            var transacaoDto = _mapper.Map<TransacaoDto>(transacaoSalva);
-            transacaoDto.NomeCarteira = carteira.Nome;
-
-            return transacaoDto;
-        }
+        // 5. Retorno do ID
+        return transacao.Id;
     }
 }

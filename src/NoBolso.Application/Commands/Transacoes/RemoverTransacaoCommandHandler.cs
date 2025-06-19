@@ -1,36 +1,39 @@
-using AutoMapper;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using NoBolso.Application.Commands.Transacoes;
-using NoBolso.Application.DTOs;
-using NoBolso.Domain.Interfaces.Services;
 using NoBolso.Domain.Entities;
 using NoBolso.Domain.Events;
-using NoBolso.Domain.Interfaces.Repositories;
+using NoBolso.Domain.Interfaces;
+using NoBolso.Domain.Interfaces.Services;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NoBolso.Application.Commands.Transacoes
+namespace NoBolso.Application.Commands.Transacoes;
+
+public class RemoverTransacaoCommandHandler : IRequestHandler<RemoverTransacaoCommand, Unit>
 {
-    public class RemoverTransacaoCommandHandler : IRequestHandler<RemoverTransacaoCommand, bool>
+    private readonly IRepository<Transacao> _repository;
+
+    public RemoverTransacaoCommandHandler(IRepository<Transacao> repository)
     {
-        private readonly ITransacaoRepository _transacaoRepository;
+        _repository = repository;
+    }
 
-        public RemoverTransacaoCommandHandler(ITransacaoRepository transacaoRepository)
+    public async Task<Unit> Handle(RemoverTransacaoCommand request, CancellationToken cancellationToken)
+    {
+        var transacao = await _repository.GetQueryable()
+            .Include(t => t.Carteira)
+            .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
+
+        if (transacao == null || transacao.Carteira.UsuarioId != request.UsuarioId)
         {
-            _transacaoRepository = transacaoRepository;
+            throw new Exception($"Transação com ID {request.Id} não encontrada ou permissão negada.");
         }
 
-        public async Task<bool> Handle(RemoverTransacaoCommand request, CancellationToken cancellationToken)
-        {
-            var transacaoExiste = await _transacaoRepository.ExisteAsync(request.Id);
-            if (!transacaoExiste)
-            {
-                return false;
-            }
+        _repository.Delete(transacao);
+        await _repository.SaveChangesAsync(cancellationToken);
 
-            await _transacaoRepository.RemoverAsync(request.Id);
-            return true;
-        }
+        return Unit.Value;
     }
 }

@@ -27,11 +27,8 @@ namespace NoBolso.Infrastructure.Data.Configurations
             builder.Property(c => c.AtualizadoEm)
                 .HasColumnType("timestamp with time zone");
 
-            // Propriedade computada para o saldo
-            builder.Property(c => c.Saldo)
-                .HasComputedColumnSql("(SELECT COALESCE(SUM(CASE WHEN t.\"TipoTransacao\" = 1 THEN t.\"Valor\" ELSE -t.\"Valor\" END), 0) FROM \"Transacoes\" t WHERE t.\"CarteiraId\" = \"Id\" AND t.\"Ativo\" = true)", stored: false);
 
-            builder.Property(c => c.Ativo) // Adicionar esta configuração
+            builder.Property(c => c.Ativo)
               .IsRequired()
               .HasDefaultValue(true);
 
@@ -43,8 +40,15 @@ namespace NoBolso.Infrastructure.Data.Configurations
                 .HasForeignKey(t => t.CarteiraId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.HasOne(c => c.Usuario)
+               .WithMany(u => u.Carteiras)
+               .HasForeignKey(c => c.UsuarioId)
+               .IsRequired()
+               .OnDelete(DeleteBehavior.Restrict);
+
             // Índices
             builder.HasIndex(c => c.Nome);
+            builder.HasIndex(c => c.UsuarioId);
             builder.HasIndex(c => c.CriadoEm);
         }
     }

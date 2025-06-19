@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NoBolso.Domain.Interfaces.Repositories;
+using NoBolso.Domain.Interfaces;
+using NoBolso.Domain.Interfaces.Services;
 using NoBolso.Infrastructure.Data;
 using NoBolso.Infrastructure.Repositories;
 using NoBolso.Infrastructure.Services;
-using NoBolso.Domain.Interfaces.Services;
 
 namespace NoBolso.Infrastructure
 {
@@ -40,11 +40,8 @@ namespace NoBolso.Infrastructure
                 }
             }
 
-            // Repositórios
-            services.AddScoped<ICarteiraRepository, CarteiraRepository>();
-            services.AddScoped<ITransacaoRepository, TransacaoRepository>();
-
-            // Serviços
+            // Em algum arquivo de configuração de DI
+            services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
             services.AddScoped<IEventService, EventService>();
 
             return services;

@@ -1,39 +1,34 @@
-using AutoMapper;
 using MediatR;
-using NoBolso.Application.DTOs;
-using NoBolso.Domain.Interfaces.Repositories;
+using NoBolso.Domain.Entities;
+using NoBolso.Domain.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NoBolso.Application.Commands.Carteiras
+namespace NoBolso.Application.Commands.Carteiras;
+
+public class AtualizarCarteiraCommandHandler : IRequestHandler<AtualizarCarteiraCommand, Unit>
 {
-    public class AtualizarCarteiraCommandHandler : IRequestHandler<AtualizarCarteiraCommand, CarteiraDto>
+    private readonly IRepository<Carteira> _carteiraRepository;
+
+    public AtualizarCarteiraCommandHandler(IRepository<Carteira> carteiraRepository)
     {
-        private readonly ICarteiraRepository _carteiraRepository;
-        private readonly IMapper _mapper;
+        _carteiraRepository = carteiraRepository;
+    }
 
-        public AtualizarCarteiraCommandHandler(ICarteiraRepository carteiraRepository, IMapper mapper)
+    public async Task<Unit> Handle(AtualizarCarteiraCommand request, CancellationToken cancellationToken)
+    {
+        var carteira = await _carteiraRepository.GetByIdAsync(request.Id, cancellationToken);
+
+        if (carteira == null)
         {
-            _carteiraRepository = carteiraRepository;
-            _mapper = mapper;
+            throw new Exception($"Carteira com ID {request.Id} não encontrada.");
         }
 
-        public async Task<CarteiraDto> Handle(AtualizarCarteiraCommand request, CancellationToken cancellationToken)
-        {
-            var carteira = await _carteiraRepository.ObterPorIdAsync(request.Id);
+        carteira.AtualizarNome(request.Nome);
 
-            if (carteira == null)
-            {
-                // Ou lançar uma exceção específica de "NotFound"
-                return null;
-            }
+        await _carteiraRepository.SaveChangesAsync(cancellationToken);
 
-            carteira.AtualizarNome(request.Nome);
-
-            await _carteiraRepository.AtualizarAsync(carteira);
-
-            return _mapper.Map<CarteiraDto>(carteira);
-        }
+        return Unit.Value;
     }
 }

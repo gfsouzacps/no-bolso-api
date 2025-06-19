@@ -1,30 +1,32 @@
 using MediatR;
-using NoBolso.Domain.Interfaces.Repositories;
+using NoBolso.Domain.Entities;
+using NoBolso.Domain.Interfaces;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NoBolso.Application.Commands.Carteiras
+namespace NoBolso.Application.Commands.Carteiras;
+
+public class RemoverCarteiraCommandHandler : IRequestHandler<RemoverCarteiraCommand, Unit>
 {
-    public class RemoverCarteiraCommandHandler : IRequestHandler<RemoverCarteiraCommand, bool>
+    private readonly IRepository<Carteira> _carteiraRepository;
+
+    public RemoverCarteiraCommandHandler(IRepository<Carteira> carteiraRepository)
     {
-        private readonly ICarteiraRepository _carteiraRepository;
+        _carteiraRepository = carteiraRepository;
+    }
 
-        public RemoverCarteiraCommandHandler(ICarteiraRepository carteiraRepository)
+    public async Task<Unit> Handle(RemoverCarteiraCommand request, CancellationToken cancellationToken)
+    {
+        var carteira = await _carteiraRepository.GetByIdAsync(request.Id, cancellationToken);
+
+        if (carteira == null)
         {
-            _carteiraRepository = carteiraRepository;
+            throw new Exception($"Carteira com ID {request.Id} não encontrada.");
         }
 
-        public async Task<bool> Handle(RemoverCarteiraCommand request, CancellationToken cancellationToken)
-        {
-            var carteiraExiste = await _carteiraRepository.ExisteAsync(request.Id);
+        _carteiraRepository.Delete(carteira);
+        await _carteiraRepository.SaveChangesAsync(cancellationToken);
 
-            if (!carteiraExiste)
-            {
-                return false;
-            }
-
-            await _carteiraRepository.RemoverAsync(request.Id);
-            return true;
-        }
+        return Unit.Value;
     }
 }

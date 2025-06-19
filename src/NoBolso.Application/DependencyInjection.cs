@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using NoBolso.Application.Behaviors;
 using System.Reflection;
 
 namespace NoBolso.Application
@@ -12,14 +13,15 @@ namespace NoBolso.Application
             // Pega o Assembly da Aplicação para não precisar referenciar classes específicas
             var applicationAssembly = typeof(DependencyInjection).Assembly;
 
-            // Registra o AutoMapper, procurando por todos os perfis de mapeamento
-            services.AddAutoMapper(applicationAssembly);
+            // Adiciona o MediatR (se já não estiver lá)
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
-            // Registra todos os validadores do FluentValidation que encontrar
-            services.AddValidatorsFromAssembly(applicationAssembly);
+            // Adiciona o Pipeline Behavior de Validação
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
-            // Registra o MediatR, encontrando todos os Handlers
-            services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(applicationAssembly));
+            // Encontra e registra automaticamente todos os validadores do assembly da Application
+            services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+
 
             return services;
         }

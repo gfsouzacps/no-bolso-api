@@ -1,18 +1,9 @@
 using System;
 using MediatR;
-using NoBolso.Application.DTOs;
 
-namespace NoBolso.Application.Queries.Carteiras
-{
-    public class ObterCarteiraQuery : IRequest<CarteiraDto>
-    {
-        public Guid Id { get; set; }
-        public bool IncluirTransacoes { get; set; } = false;
+namespace NoBolso.Application.Queries.Carteiras;
 
-        public ObterCarteiraQuery(Guid id, bool incluirTransacoes = false)
-        {
-            Id = id;
-            IncluirTransacoes = incluirTransacoes;
-        }
-    }
-}
+public record ObterCarteiraQuery(Guid Id, bool IncluirTransacoes = false) : IRequest<ObterCarteiraQueryResult?>;
+
+public record ObterCarteiraQueryResult(Guid Id, string Nome, List<TransacaoResumidaResult> Transacoes);
+public record TransacaoResumidaResult(Guid Id, string Descricao, decimal Valor);

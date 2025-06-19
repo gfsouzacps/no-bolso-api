@@ -1,31 +1,28 @@
-using System.Threading;
-using System.Threading.Tasks;
-using AutoMapper;
 using MediatR;
 using NoBolso.Application.Commands.Carteiras;
-using NoBolso.Application.DTOs;
 using NoBolso.Domain.Entities;
-using NoBolso.Domain.Interfaces.Repositories;
+using NoBolso.Domain.Interfaces;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace NoBolso.Application.Commands.Carteiras
+namespace NoBolso.Application.Commands.Carteiras;
+
+public class CriarCarteiraCommandHandler : IRequestHandler<CriarCarteiraCommand, Guid>
 {
-    public class CriarCarteiraCommandHandler : IRequestHandler<CriarCarteiraCommand, CarteiraDto>
+    private readonly IRepository<Carteira> _carteiraRepository;
+
+    public CriarCarteiraCommandHandler(IRepository<Carteira> carteiraRepository)
     {
-        private readonly ICarteiraRepository _carteiraRepository;
-        private readonly IMapper _mapper;
+        _carteiraRepository = carteiraRepository;
+    }
 
-        public CriarCarteiraCommandHandler(ICarteiraRepository carteiraRepository, IMapper mapper)
-        {
-            _carteiraRepository = carteiraRepository;
-            _mapper = mapper;
-        }
+    public async Task<Guid> Handle(CriarCarteiraCommand request, CancellationToken cancellationToken)
+    {
+        var carteira = new Carteira(request.Nome, request.usuarioId);
 
-        public async Task<CarteiraDto> Handle(CriarCarteiraCommand request, CancellationToken cancellationToken)
-        {
-            var carteira = new Carteira(request.Nome);
-            var carteiraSalva = await _carteiraRepository.AdicionarAsync(carteira);
+        await _carteiraRepository.AddAsync(carteira, cancellationToken);
+        await _carteiraRepository.SaveChangesAsync(cancellationToken);
 
-            return _mapper.Map<CarteiraDto>(carteiraSalva);
-        }
+        return carteira.Id;
     }
 }

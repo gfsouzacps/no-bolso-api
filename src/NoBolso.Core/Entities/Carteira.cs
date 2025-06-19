@@ -9,8 +9,9 @@ namespace NoBolso.Domain.Entities
     public class Carteira : BaseEntity
     {
         public string Nome { get; private set; }
-        public decimal Saldo { get; private set; } // O EF Core e o BD preencherão este valor.
         public bool Ativo { get; private set; } = true;
+        public Guid UsuarioId { get; private set; }
+        public Usuario Usuario { get; private set; }
 
         private readonly List<Transacao> _transacoes;
         public IReadOnlyCollection<Transacao> Transacoes => _transacoes.AsReadOnly();
@@ -20,10 +21,11 @@ namespace NoBolso.Domain.Entities
             _transacoes = new List<Transacao>();
         }
 
-        public Carteira(string nome) : this()
+        public Carteira(string nome, Guid usuarioId) : this()
         {
             ValidarNome(nome);
             Nome = nome;
+            UsuarioId = usuarioId;
             Ativo = true;
         }
 

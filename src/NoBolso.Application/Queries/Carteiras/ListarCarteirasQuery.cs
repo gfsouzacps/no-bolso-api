@@ -1,10 +1,9 @@
 using MediatR;
-using NoBolso.Application.DTOs;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+using NoBolso.Domain.Entities;
+using NoBolso.Domain.Interfaces;
 
-namespace NoBolso.Application.Queries.Carteiras
-{
-    public class ListarCarteirasQuery : IRequest<IEnumerable<CarteiraDto>>
-    {
-    }
-}
+namespace NoBolso.Application.Queries.Carteiras;
+
+public record ListarCarteirasQuery(Guid UsuarioId) : IRequest<List<ListarCarteirasQueryResult>>;
+public record ListarCarteirasQueryResult(Guid Id, string Nome, decimal Saldo);

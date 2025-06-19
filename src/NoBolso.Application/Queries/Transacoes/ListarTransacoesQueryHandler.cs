@@ -1,79 +1,64 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using NoBolso.Application.Queries.Transacoes;
+using NoBolso.Domain.Entities;
+using NoBolso.Domain.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
-using MediatR;
-using NoBolso.Application.DTOs;
-using NoBolso.Application.Queries.Transacoes;
-using NoBolso.Domain.Interfaces.Repositories;
 
-namespace NoBolso.Application.Queries.Transacoes
+namespace NoBolso.Application.Queries.Transacoes;
+
+public class ListarTransacoesQueryHandler : IRequestHandler<ListarTransacoesQuery, List<ListarTransacoesQueryResult>>
 {
-    public class ListarTransacoesQueryHandler : IRequestHandler<ListarTransacoesQuery, IEnumerable<TransacaoDto>>
+    private readonly IRepository<Transacao> _transacaoRepository;
+
+    public ListarTransacoesQueryHandler(IRepository<Transacao> transacaoRepository)
     {
-        private readonly ITransacaoRepository _transacaoRepository;
-        private readonly ICarteiraRepository _carteiraRepository;
-        private readonly IMapper _mapper;
+        _transacaoRepository = transacaoRepository;
+    }
 
-        public ListarTransacoesQueryHandler(
-            ITransacaoRepository transacaoRepository,
-            ICarteiraRepository carteiraRepository,
-            IMapper mapper)
-        {
-            _transacaoRepository = transacaoRepository;
-            _carteiraRepository = carteiraRepository;
-            _mapper = mapper;
-        }
+    public async Task<List<ListarTransacoesQueryResult>> Handle(ListarTransacoesQuery request, CancellationToken cancellationToken)
+    {
+        var query = _transacaoRepository.GetQueryable()
+                                        .Include(t => t.Carteira)
+                                        .AsQueryable();
 
-        public async Task<IEnumerable<TransacaoDto>> Handle(ListarTransacoesQuery request, CancellationToken cancellationToken)
-        {
-            // O repositório agora deve ser capaz de aplicar os filtros combinados.
-            // Se nenhum filtro for passado, o repositório deve retornar todas as transações (sem filtros).
-            var transacoes = await _transacaoRepository.ListarComFiltrosAsync(
-                request.CarteiraId,
-                request.TipoTransacao,
-                request.DataInicio,
-                request.DataFim,
-                request.PageNumber,
-                request.PageSize
-            );
+        query = AplicarFiltros(query, request);
 
-            // Aplicar paginação APÓS a busca no repositório, mas ANTES de carregar nomes de carteiras,
-            // para que o Count reflita apenas os itens da página atual.
-            var transacoesPaginadas = transacoes
-                .Skip((request.PageNumber - 1) * request.PageSize)
-                .Take(request.PageSize)
-                .ToList(); // Materializa para evitar múltiplas enumerações
+        return await query
+            .OrderByDescending(t => t.DataTransacao)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .Select(t => new ListarTransacoesQueryResult(
+                t.Id,
+                t.Descricao,
+                t.Valor,
+                t.TipoTransacao,
+                t.DataTransacao,
+                t.Carteira.Nome
+            ))
+            .ToListAsync(cancellationToken);
+    }
 
-            var transacoesDto = _mapper.Map<IEnumerable<TransacaoDto>>(transacoesPaginadas).ToList(); // Materializa
+    private IQueryable<Transacao> AplicarFiltros(IQueryable<Transacao> query, ListarTransacoesQuery request)
+    {
+        if (request.UsuarioId.HasValue)
+            query = query.Where(t => t.Carteira.UsuarioId == request.UsuarioId.Value);
 
-            // Buscar nomes das carteiras para enriquecer os DTOs
-            var carteiraIds = transacoesDto.Select(t => t.CarteiraId).Distinct().ToList();
-            var carteiras = new Dictionary<Guid, string>();
+        if (request.CarteiraId.HasValue)
+            query = query.Where(t => t.CarteiraId == request.CarteiraId.Value);
 
-            // Pode otimizar esta busca de carteiras buscando todas de uma vez, se possível
-            // Ex: var todasCarteirasNecessarias = await _carteiraRepository.ObterPorIdsAsync(carteiraIds);
-            // E então popular o dictionary.
-            foreach (var carteiraId in carteiraIds)
-            {
-                var carteira = await _carteiraRepository.ObterPorIdAsync(carteiraId);
-                if (carteira != null)
-                {
-                    carteiras[carteiraId] = carteira.Nome;
-                }
-            }
+        if (request.TipoTransacao.HasValue)
+            query = query.Where(t => t.TipoTransacao == request.TipoTransacao.Value);
 
-            // Enriquecer DTOs com nomes das carteiras
-            foreach (var transacaoDto in transacoesDto)
-            {
-                if (carteiras.TryGetValue(transacaoDto.CarteiraId, out var nomeCarteira))
-                {
-                    transacaoDto.NomeCarteira = nomeCarteira;
-                }
-            }
+        if (request.DataInicio.HasValue)
+            query = query.Where(t => t.DataTransacao >= request.DataInicio.Value);
 
-            return transacoesDto;
-        }
+        if (request.DataFim.HasValue)
+            query = query.Where(t => t.DataTransacao <= request.DataFim.Value);
+
+        return query;
     }
 }

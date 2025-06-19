@@ -1,30 +1,38 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using NoBolso.Application.Queries.Transacoes;
+using NoBolso.Domain.Entities;
+using NoBolso.Domain.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
-using MediatR;
-using NoBolso.Application.DTOs;
-using NoBolso.Application.Queries.Transacoes;
-using NoBolso.Domain.Interfaces.Repositories;
 
-namespace NoBolso.Application.Queries.Transacoes
+namespace NoBolso.Application.Queries.Transacoes;
+
+public class ObterTransacaoPorIdQueryHandler : IRequestHandler<ObterTransacaoPorIdQuery, ObterTransacaoPorIdQueryResult?>
 {
-    public class ObterTransacaoPorIdQueryHandler : IRequestHandler<ObterTransacaoPorIdQuery, TransacaoDto>
+    private readonly IRepository<Transacao> _transacaoRepository;
+
+    public ObterTransacaoPorIdQueryHandler(IRepository<Transacao> transacaoRepository)
     {
-        private readonly ITransacaoRepository _transacaoRepository;
-        private readonly IMapper _mapper;
+        _transacaoRepository = transacaoRepository;
+    }
 
-        public ObterTransacaoPorIdQueryHandler(ITransacaoRepository transacaoRepository, IMapper mapper)
-        {
-            _transacaoRepository = transacaoRepository;
-            _mapper = mapper;
-        }
-
-        public async Task<TransacaoDto> Handle(ObterTransacaoPorIdQuery request, CancellationToken cancellationToken)
-        {
-            var transacao = await _transacaoRepository.ObterPorIdAsync(request.Id);
-            return _mapper.Map<TransacaoDto>(transacao);
-        }
+    public async Task<ObterTransacaoPorIdQueryResult?> Handle(ObterTransacaoPorIdQuery request, CancellationToken cancellationToken)
+    {
+        return await _transacaoRepository
+            .GetQueryable()
+            .Include(t => t.Carteira) // Incluímos a Carteira
+            .Where(t => t.Id == request.Id)
+            .Select(t => new ObterTransacaoPorIdQueryResult(
+                t.Id,
+                t.Descricao,
+                t.Valor,
+                t.TipoTransacao,
+                t.DataTransacao,
+                t.Carteira.Nome
+            ))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }

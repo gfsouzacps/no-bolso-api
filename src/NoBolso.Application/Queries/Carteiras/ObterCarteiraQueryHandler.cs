@@ -1,35 +1,43 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using NoBolso.Application.Queries.Carteiras;
+using NoBolso.Domain.Entities;
+using NoBolso.Domain.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
-using MediatR;
-using NoBolso.Application.DTOs;
-using NoBolso.Application.Queries.Carteiras;
-using NoBolso.Domain.Interfaces.Repositories;
 
-namespace NoBolso.Application.Queries.Carteiras
+namespace NoBolso.Application.Queries.Carteiras;
+
+public class ObterCarteiraQueryHandler : IRequestHandler<ObterCarteiraQuery, ObterCarteiraQueryResult?>
 {
-    public class ObterCarteiraQueryHandler : IRequestHandler<ObterCarteiraQuery, CarteiraDto>
+    private readonly IRepository<Carteira> _carteiraRepository;
+
+    public ObterCarteiraQueryHandler(IRepository<Carteira> carteiraRepository)
     {
-        private readonly ICarteiraRepository _carteiraRepository;
-        private readonly IMapper _mapper;
+        _carteiraRepository = carteiraRepository;
+    }
 
-        public ObterCarteiraQueryHandler(ICarteiraRepository carteiraRepository, IMapper mapper)
+    public async Task<ObterCarteiraQueryResult?> Handle(ObterCarteiraQuery request, CancellationToken cancellationToken)
+    {
+        var query = _carteiraRepository.GetQueryable();
+
+        if (request.IncluirTransacoes)
         {
-            _carteiraRepository = carteiraRepository;
-            _mapper = mapper;
+            query = query.Include(c => c.Transacoes);
         }
 
-        public async Task<CarteiraDto> Handle(ObterCarteiraQuery request, CancellationToken cancellationToken)
-        {
-            var carteira = request.IncluirTransacoes
-                ? await _carteiraRepository.ObterPorIdComTransacoesAsync(request.Id)
-                : await _carteiraRepository.ObterPorIdAsync(request.Id);
+        var carteira = await query
+            .Where(c => c.Id == request.Id)
+            .Select(c => new ObterCarteiraQueryResult(
+                c.Id,
+                c.Nome,
+                request.IncluirTransacoes
+                    ? c.Transacoes.Select(t => new TransacaoResumidaResult(t.Id, t.Descricao, t.Valor)).ToList()
+                    : new List<TransacaoResumidaResult>()
+            ))
+            .FirstOrDefaultAsync(cancellationToken);
 
-            if (carteira == null)
-                throw new InvalidOperationException($"Carteira com ID {request.Id} não foi encontrada.");
-
-            return _mapper.Map<CarteiraDto>(carteira);
-        }
+        return carteira;
     }
 }
