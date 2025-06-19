@@ -11,6 +11,7 @@ namespace NoBolso.Infrastructure.Data
     {
         public DbSet<Carteira> Carteiras { get; set; }
         public DbSet<Transacao> Transacoes { get; set; }
+        public DbSet<GastoRecorrente> GastosRecorrentes { get; set; }
 
         public NoBolsoDbContext(DbContextOptions<NoBolsoDbContext> options) : base(options)
         {
