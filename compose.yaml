@@ -1,0 +1,7 @@
+﻿services:
+  nobolso.api:
+    image: nobolso.api
+    build:
+      context: .
+      dockerfile: NoBolso.API/Dockerfile
+

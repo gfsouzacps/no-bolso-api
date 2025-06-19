@@ -1,0 +1,6 @@
+@NoBolso.Presentation_HostAddress = http://localhost:5205
+
+GET {{NoBolso.Presentation_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
