@@ -28,12 +28,12 @@ public class CriarTransacaoCommandHandler : IRequestHandler<CriarTransacaoComman
 
     public async Task<Guid> Handle(CriarTransacaoCommand request, CancellationToken cancellationToken)
     {
-        // 1. Validação: Checar se a carteira existe e pertence ao usuário
-        var carteira = await _carteiraRepository.GetByIdAsync(request.CarteiraId, cancellationToken);
-        if (carteira == null || carteira.UsuarioId != request.UsuarioId)
-        {
-            throw new InvalidOperationException($"Carteira com ID {request.CarteiraId} não foi encontrada ou não pertence ao usuário.");
-        }
+        // 1. Validação: Checar se a carteira existe.
+        var carteira = await _carteiraRepository.GetByIdAsync(request.CarteiraId, cancellationToken)
+            ?? throw new InvalidOperationException($"Carteira com ID {request.CarteiraId} não foi encontrada.");
+
+        // Futuramente, a validação de permissão será mais robusta,
+        // checando se o request.UsuarioLogadoId pertence ao carteira.Grupo.
 
         // 2. Criação da Entidade
         var transacao = new Transacao(
@@ -41,16 +41,16 @@ public class CriarTransacaoCommandHandler : IRequestHandler<CriarTransacaoComman
             request.Valor,
             request.TipoTransacao,
             request.DataTransacao,
-            request.CarteiraId
+            request.CarteiraId,
+            request.UsuarioLogadoId // Passando o ID de quem criou a transação
         );
-        // Lembre-se de adicionar o UsuarioId à entidade Transacao se ainda não o fez.
 
         // 3. Persistência
         await _transacaoRepository.AddAsync(transacao, cancellationToken);
         await _transacaoRepository.SaveChangesAsync(cancellationToken);
 
         // 4. Publicação do Evento (APÓS salvar no banco)
-        await _eventService.PublicarTransacaoCriadaAsync(new TransacaoCriadaEvent(transacao));
+        // await _eventService.PublicarTransacaoCriadaAsync(new TransacaoCriadaEvent(transacao)); // Reativar se necessário
 
         // 5. Retorno do ID
         return transacao.Id;

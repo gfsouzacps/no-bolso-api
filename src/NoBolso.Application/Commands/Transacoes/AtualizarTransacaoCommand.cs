@@ -10,5 +10,5 @@ public record AtualizarTransacaoCommand(
     decimal Valor,
     TipoTransacao TipoTransacao,
     DateTime DataTransacao,
-    Guid UsuarioId
+    Guid GrupoIdDoUsuario // ID do grupo ativo do usuário logado
 ) : IRequest<Unit>;

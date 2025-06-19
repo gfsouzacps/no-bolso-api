@@ -7,8 +7,8 @@ namespace NoBolso.Application.Commands.Transacoes;
 public record CriarTransacaoCommand(
     string Descricao,
     decimal Valor,
-    TipoTransacao TipoTransacao,
+    NoBolso.Domain.Enums.TipoTransacao TipoTransacao,
     DateTime DataTransacao,
     Guid CarteiraId,
-    Guid UsuarioId
+    Guid UsuarioLogadoId
 ) : IRequest<Guid>;

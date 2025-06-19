@@ -4,6 +4,7 @@ using NoBolso.Domain.Entities;
 using NoBolso.Domain.Enums;
 using NoBolso.Domain.Interfaces;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,7 +13,7 @@ namespace NoBolso.Application.Queries.Carteiras;
 public class ListarCarteirasQueryHandler : IRequestHandler<ListarCarteirasQuery, List<ListarCarteirasQueryResult>>
 {
     private readonly IRepository<Carteira> _carteiraRepository;
- 
+
     public ListarCarteirasQueryHandler(IRepository<Carteira> carteiraRepository)
     {
         _carteiraRepository = carteiraRepository;
@@ -22,7 +23,7 @@ public class ListarCarteirasQueryHandler : IRequestHandler<ListarCarteirasQuery,
     {
         return await _carteiraRepository
             .GetQueryable()
-            .Where(c => c.UsuarioId == request.UsuarioId)
+            .Where(c => c.GrupoId == request.GrupoId)
             .Include(c => c.Transacoes)
             .Select(c => new ListarCarteirasQueryResult(
                 c.Id,

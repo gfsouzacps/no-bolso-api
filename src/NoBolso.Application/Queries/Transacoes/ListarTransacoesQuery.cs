@@ -6,14 +6,16 @@ using NoBolso.Domain.Enums;
 namespace NoBolso.Application.Queries.Transacoes;
 
 public record ListarTransacoesQuery(
+    Guid GrupoId,
+    Guid? CriadoPorUsuarioId,
     Guid? CarteiraId,
-    Guid? UsuarioId,
     TipoTransacao? TipoTransacao,
     DateTime? DataInicio,
     DateTime? DataFim,
     int PageNumber = 1,
     int PageSize = 25
 ) : IRequest<List<ListarTransacoesQueryResult>>;
+
 
 public record ListarTransacoesQueryResult(
     Guid Id,

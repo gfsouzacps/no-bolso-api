@@ -10,8 +10,8 @@ namespace NoBolso.Domain.Entities
     {
         public string Nome { get; private set; }
         public bool Ativo { get; private set; } = true;
-        public Guid UsuarioId { get; private set; }
-        public Usuario Usuario { get; private set; }
+        public Guid GrupoId { get; private set; }
+        public Grupo Grupo { get; private set; }
 
         private readonly List<Transacao> _transacoes;
         public IReadOnlyCollection<Transacao> Transacoes => _transacoes.AsReadOnly();
@@ -21,11 +21,11 @@ namespace NoBolso.Domain.Entities
             _transacoes = new List<Transacao>();
         }
 
-        public Carteira(string nome, Guid usuarioId) : this()
+        public Carteira(string nome, Guid grupoId) : this()
         {
             ValidarNome(nome);
             Nome = nome;
-            UsuarioId = usuarioId;
+            GrupoId = grupoId;
             Ativo = true;
         }
 

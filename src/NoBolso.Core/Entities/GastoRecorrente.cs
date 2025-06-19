@@ -18,8 +18,12 @@ public class GastoRecorrente : BaseEntity
     public Guid CarteiraId { get; private set; }
     public Carteira Carteira { get; private set; }
 
-    public Guid UsuarioId { get; private set; }
-    public Usuario Usuario { get; private set; }
+    public Guid GrupoId { get; private set; }
+    public Grupo Grupo { get; private set; }
+
+    // Mantemos o UsuarioId para saber QUEM criou/é responsável por este gasto
+    public Guid CriadoPorUsuarioId { get; private set; }
+    public Usuario CriadoPorUsuario { get; private set; }
 
     protected GastoRecorrente() { }
 
@@ -32,7 +36,8 @@ public class GastoRecorrente : BaseEntity
         DateTime dataInicio,
         DateTime? dataFim,
         Guid carteiraId,
-        Guid usuarioId)
+        Guid grupoId,
+        Guid criadoPorUsuarioId)
     {
         Descricao = descricao;
         Valor = valor;
@@ -42,7 +47,8 @@ public class GastoRecorrente : BaseEntity
         DataInicio = dataInicio;
         DataFim = dataFim;
         CarteiraId = carteiraId;
-        UsuarioId = usuarioId;
+        GrupoId = grupoId;
+        CriadoPorUsuarioId = criadoPorUsuarioId;
         Ativo = true;
     }
 

@@ -29,11 +29,18 @@ public class GastoRecorrenteConfiguration : IEntityTypeConfiguration<GastoRecorr
             .HasForeignKey(g => g.CarteiraId)
             .OnDelete(DeleteBehavior.Restrict); // Não deixa deletar a carteira se houver um gasto recorrente nela
 
-        // Relacionamento com Usuario
-        builder.HasOne(g => g.Usuario)
-            .WithMany() // Um usuário pode ter vários gastos recorrentes
-            .HasForeignKey(g => g.UsuarioId)
-            .OnDelete(DeleteBehavior.Cascade); // Se o usuário for deletado, seus gastos recorrentes também são
+        // Relacionamento principal com o Grupo
+        builder.HasOne(g => g.Grupo)
+            .WithMany() // Um grupo pode ter vários gastos
+            .HasForeignKey(g => g.GrupoId)
+            .IsRequired();
+
+        // Relacionamento com o Usuário que criou o gasto
+        builder.HasOne(g => g.CriadoPorUsuario)
+            .WithMany() // Um usuário pode criar vários gastos
+            .HasForeignKey(g => g.CriadoPorUsuarioId)
+            .IsRequired();
+
 
         builder.HasQueryFilter(g => g.Ativo);
     }

@@ -40,15 +40,13 @@ namespace NoBolso.Infrastructure.Data.Configurations
                 .HasForeignKey(t => t.CarteiraId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasOne(c => c.Usuario)
-               .WithMany(u => u.Carteiras)
-               .HasForeignKey(c => c.UsuarioId)
-               .IsRequired()
-               .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne(c => c.Grupo)
+                .WithMany(g => g.Carteiras)
+                .HasForeignKey(c => c.GrupoId)
+                .IsRequired();
 
             // Índices
             builder.HasIndex(c => c.Nome);
-            builder.HasIndex(c => c.UsuarioId);
             builder.HasIndex(c => c.CriadoEm);
         }
     }

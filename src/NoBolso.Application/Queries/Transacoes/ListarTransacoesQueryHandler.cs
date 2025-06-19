@@ -22,8 +22,9 @@ public class ListarTransacoesQueryHandler : IRequestHandler<ListarTransacoesQuer
     public async Task<List<ListarTransacoesQueryResult>> Handle(ListarTransacoesQuery request, CancellationToken cancellationToken)
     {
         var query = _transacaoRepository.GetQueryable()
-                                        .Include(t => t.Carteira)
-                                        .AsQueryable();
+                                       .Include(t => t.Carteira)
+                                       // MUDANÇA: Filtro principal é pelo GrupoId da Carteira.
+                                       .Where(t => t.Carteira.GrupoId == request.GrupoId);
 
         query = AplicarFiltros(query, request);
 
@@ -44,8 +45,9 @@ public class ListarTransacoesQueryHandler : IRequestHandler<ListarTransacoesQuer
 
     private IQueryable<Transacao> AplicarFiltros(IQueryable<Transacao> query, ListarTransacoesQuery request)
     {
-        if (request.UsuarioId.HasValue)
-            query = query.Where(t => t.Carteira.UsuarioId == request.UsuarioId.Value);
+        // MUDANÇA: O filtro agora é em 'CriadoPorUsuarioId' na própria transação.
+        if (request.CriadoPorUsuarioId.HasValue)
+            query = query.Where(t => t.CriadoPorUsuarioId == request.CriadoPorUsuarioId.Value);
 
         if (request.CarteiraId.HasValue)
             query = query.Where(t => t.CarteiraId == request.CarteiraId.Value);

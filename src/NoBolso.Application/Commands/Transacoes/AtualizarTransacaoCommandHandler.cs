@@ -22,20 +22,17 @@ public class AtualizarTransacaoCommandHandler : IRequestHandler<AtualizarTransac
     public async Task<Unit> Handle(AtualizarTransacaoCommand request, CancellationToken cancellationToken)
     {
         var transacao = await _repository.GetQueryable()
-            .Include(t => t.Carteira)
+            .Include(t => t.Carteira) // Incluímos a Carteira para acessar seu GrupoId
             .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
 
-        if (transacao == null || transacao.Carteira.UsuarioId != request.UsuarioId)
+        // A checagem de permissão agora compara o GrupoId da carteira com o do usuário.
+        if (transacao == null || transacao.Carteira.GrupoId != request.GrupoIdDoUsuario)
         {
             throw new Exception($"Transação com ID {request.Id} não encontrada ou permissão negada.");
         }
 
-        transacao.AtualizarDescricao(request.Descricao);
-        transacao.AtualizarValor(request.Valor);
-        transacao.AtualizarTipoTransacao(request.TipoTransacao);
-        transacao.AtualizarDataTransacao(request.DataTransacao);
-
         await _repository.SaveChangesAsync(cancellationToken);
+
         return Unit.Value;
     }
 }

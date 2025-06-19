@@ -7,6 +7,7 @@ public class Usuario : BaseEntity
 {
     public string Nome { get; private set; }
     public string Email { get; private set; }
+    public ICollection<Grupo> Grupos { get; private set; } = new List<Grupo>();
 
     private readonly List<Carteira> _carteiras = new();
     public IReadOnlyCollection<Carteira> Carteiras => _carteiras.AsReadOnly();

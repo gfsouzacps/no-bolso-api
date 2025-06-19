@@ -26,7 +26,8 @@ public class RemoverTransacaoCommandHandler : IRequestHandler<RemoverTransacaoCo
             .Include(t => t.Carteira)
             .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
 
-        if (transacao == null || transacao.Carteira.UsuarioId != request.UsuarioId)
+        // MUDANÇA: A checagem de permissão compara o GrupoId da carteira com o do usuário.
+        if (transacao == null || transacao.Carteira.GrupoId != request.GrupoIdDoUsuario)
         {
             throw new Exception($"Transação com ID {request.Id} não encontrada ou permissão negada.");
         }

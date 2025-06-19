@@ -12,6 +12,7 @@ namespace NoBolso.Domain.Entities
         public DateTime DataTransacao { get; private set; }
         public Guid CarteiraId { get; private set; }
         public bool Ativo { get; private set; }
+        public Guid CriadoPorUsuarioId { get; private set; }
 
         // Navigation property
         public Carteira Carteira { get; private set; }
@@ -23,7 +24,8 @@ namespace NoBolso.Domain.Entities
             decimal valor,
             TipoTransacao tipoTransacao,
             DateTime dataTransacao,
-            Guid carteiraId)
+            Guid carteiraId,
+            Guid criadoPorUsuarioId)
         {
             ValidarDescricao(descricao);
             ValidarValor(valor);
@@ -35,6 +37,7 @@ namespace NoBolso.Domain.Entities
             TipoTransacao = tipoTransacao;
             DataTransacao = dataTransacao;
             CarteiraId = carteiraId;
+            CriadoPorUsuarioId = criadoPorUsuarioId;
             Ativo = true;
         }
 
